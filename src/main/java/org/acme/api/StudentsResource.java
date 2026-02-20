@@ -77,6 +77,7 @@ public class StudentsResource {
     }
 
     @GET
+    @Path("/all")
     public Response getAllStudents() {
         try {
             List<Students> students = studentsService.getAllStudents();
