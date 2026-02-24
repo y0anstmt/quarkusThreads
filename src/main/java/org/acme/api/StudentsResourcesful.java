@@ -9,11 +9,12 @@ import org.acme.domain.Students;
 import io.smallrye.common.annotation.Blocking;
 import io.smallrye.common.annotation.RunOnVirtualThread;
 import io.smallrye.mutiny.Uni;
-import io.vertx.core.json.JsonArray;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.GET;
+import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
+import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
 
@@ -39,6 +40,57 @@ public class StudentsResourcesful {
             });
     }
 
+    @POST
+    @Path("/delete/reactive/{id}")
+    @Produces(MediaType.APPLICATION_JSON)
+    public Uni<String> deleteReactive(@PathParam("id") Long id){
+        System.out.println("[DELETE-REACTIVE] Thread:" + Thread.currentThread().getName());
+        return client
+            .deleteAbs("http://localhost:8081/api/students/" + id)
+            .send()
+            .onItem().transform(resp->{
+                System.out.println("[DELETE-REACTIVE] Response on: " + Thread.currentThread().getName());
+                return "Delete status for " + id + ": " + resp.statusCode();
+            });
+    }
+
+    @GET
+    @Path("/reactive/{id}")
+    @Produces(MediaType.APPLICATION_JSON)
+    public Uni<Students> getByIdReactive(@PathParam("id") Long id){
+        System.out.println("[GET-BY-ID-REACTIVE] Thread: " + Thread.currentThread().getName());
+        return client
+            .getAbs("http://localhost:8081/api/students/" + id)
+            .send()
+            .onItem().transform(resp -> {
+                System.out.println("[GET-BY-ID-REACTIVE] Response on: " + Thread.currentThread().getName());
+                if(resp.statusCode() == 200){
+                    return resp.bodyAsJsonObject().mapTo(Students.class);
+                } else {
+                    throw new RuntimeException("Failed to get student with id " + id + ": " + resp.statusMessage());
+                }
+            });
+    }
+
+    @POST
+    @Path("/create/reactive")
+    @Produces(MediaType.APPLICATION_JSON)
+    public Uni<String> createReactive(Students student){
+        System.out.println("[CREATE-REACTIVE] Thread: " + Thread.currentThread().getName());
+        return client
+            .postAbs("http://localhost:8081/api/students")
+            .sendJson(student)
+            .onItem().transform(resp -> {
+                System.out.println("[CREATE-REACTIVE] Response on: " + Thread.currentThread().getName());
+                return "Create status for " + student.getName() + ": " + resp.statusCode();
+            });
+    }
+
+    /**
+     * This method simulates a blocking call by sleeping for 100ms before making the HTTP request.
+     * @return
+     */
+    
     @GET
     @Path("/blocking")
     @Blocking
